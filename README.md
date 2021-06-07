@@ -1,6 +1,6 @@
 ## Repository notes
 
-This repository contains code associated with the manuscript, *Phylogenetic conservatism of mycoparasitism and its contribution to pathogen antagonism*, ***Ecology Letters***.
+This repository contains code associated with the manuscript, *Phylogenetic conservatism of mycoparasitism and its contribution to pathogen antagonism*, in review at ***Molecular Ecology***.
 
 **Authors:** Edward G. Barge, Devin R. Leopold, Alejandro Rojas, Rytas Vilgalys, & Posy E. Busby
 
@@ -11,4 +11,4 @@ This repository contains code associated with the manuscript, *Phylogenetic cons
 All code required to reproduce the analyses and figures presented in the manuscript can be found in the `analysis/` folder of this repository. The output of the analyses can be previewed here:  
   
 [Experiment 1](https://htmlpreview.github.io/?https://github.com/dleopold/CladosporiumMS/master/analysis/CladMS_expt1.html)  
-[Experiment 2](https://htmlpreview.github.io/?https://github.com/dleopold/CladosporiumMS/master/analysis/CladMS_expt1.html)  
+[Experiment 2](https://htmlpreview.github.io/?https://github.com/dleopold/CladosporiumMS/master/analysis/CladMS_expt2.html)  
