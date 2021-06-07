@@ -1,0 +1,123 @@
+---
+title: "Cladosporium experiment 2"
+author: "Devin R. Leopold"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(magrittr)
+library(glmmTMB)
+library(emmeans)
+library(multcomp)
+library(ggtext)
+
+#Import raw data
+dat <- read.csv("data/Experiment2.csv")
+
+```
+
+# Herbarum species complex
+
+First we will fit the model and validate the model assumptions. We will use a negative binomial error distribution to account for our over-dispersed count data.
+
+```{r, warning=F, message=F, out.width="100%"}
+dat.herb <- dat %>% 
+  filter(is.na(complex) | complex!='cladosporioides')
+
+mod.herb <- glmmTMB(disease_severity ~ treatment, 
+                    data=dat.herb, family='nbinom2') 
+performance::check_model(mod.herb)
+```
+
+Now we will test for overall variation among the treatments using a likelihood ratio test.
+
+```{r, warning=F}
+mod.herb.null <- glmmTMB(disease_severity ~ 1 , data=dat.herb, family='nbinom2') 
+
+anova(mod.herb, mod.herb.null)
+
+```
+
+Now we will look at which levels of the treatment differ using a post-hoc test.
+
+```{r}
+herb.marginal <- emmeans(mod.herb, ~ treatment)
+pairs(herb.marginal)
+```
+
+# Cladosporioides species complex
+
+First we will fit the model and validate the model assumptions. 
+
+```{r, warning=F, message=F, out.width="100%"}
+dat.clad <- dat %>% 
+  filter(is.na(complex) | complex!='herbarum')
+
+mod.clad <- glmmTMB(disease_severity ~ treatment , 
+                    dispformula = ~ treatment,
+                    data=dat.clad, family='nbinom2') 
+performance::check_model(mod.clad)
+```
+
+Now we can test for overall variation among the treatments using a likelihood ratio test.
+
+```{r, warning=F}
+mod.clad.null <- glmmTMB(disease_severity ~ 1, data=dat.clad, family='nbinom2') 
+
+anova(mod.clad, mod.clad.null) 
+
+```
+
+Now we will look at which levels of the treatment differ using a post-hoc test.
+
+```{r}
+clad.marginal <- emmeans(mod.clad, ~ treatment)
+pairs(clad.marginal)
+```
+
+# Plot treatment effects for both species complexes
+
+```{r, echo=F, fig.height=3.5, fig.width=7, out.width="100%"}
+
+fig.dat <- bind_rows(
+  cld(herb.marginal, decreasing=F) %>%
+  as.data.frame %>%
+    mutate(complex="**(b)** *C. herbarum*"),
+  cld(clad.marginal, decreasing=F) %>%
+  as.data.frame %>%
+    mutate(complex="**(a)** *C. cladosporioides*"),
+) %>%
+  mutate(group=str_remove_all(.group, " ")) %>%
+  transmute(
+    complex=complex,
+    treatment=factor(treatment, levels=c("Neg. control", "Autoclaved", "Filtered", "Live")),
+    mean=exp(emmean),
+    UCI=exp(upper.CL),
+    LCI=exp(lower.CL),
+    TukLet=case_when(
+      group=="3" ~ "a",
+      group=="23" ~ "ab",
+      group=="2" ~ "b",
+      group=="12" ~ "bc",
+      group=="1" ~ "c"
+  ))
+
+ggplot(fig.dat, aes(x=treatment, y=mean)) +
+   geom_bar(stat='identity', color='black', fill='grey80')+
+   geom_pointrange(aes(ymin=LCI,ymax=UCI)) +
+   ylim(c(0,88)) +
+   labs(y="Rust severity (# of uredinia)")+
+   facet_wrap(~complex) +
+   geom_text(aes(label=TukLet, y=UCI), vjust=-0.5, size=4.5) +
+   theme_classic() +
+   theme(axis.title.x = element_blank(),
+         axis.title.y = element_markdown(size=13),
+         strip.text = element_markdown(size=13, hjust=0),
+         strip.background = element_blank())
+ggsave("output/figure_expt2.jpg", width=7, height=3.5)
+
+
+```
+

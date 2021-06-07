@@ -1,0 +1,299 @@
+---
+title: "Cladosporium experiment 1"
+author: "Devin R. Leopold"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(magrittr)
+library(treeio)
+library(ape)
+library(brms)
+library(bayestestR)
+
+# Source custom functions
+sourced <- list.files("src", full.names = T) %>% lapply(source)
+
+#Import raw data
+dat <- read.csv("data/clad_rawcounts.csv") %>%
+  mutate(id=gsub("_","",culture)) 
+
+#Import phylogenetic tree
+tree <- read.newick("data/clad_multigene.tre") %>%
+  keep.tip(unique(dat$id))
+tree$node.label %<>% gsub(".0","",., fixed = T)
+
+#Summarise data by isolate
+dat.iso <- dat %>% group_by(id, species, clade, region) %>%
+  summarise(rust=sum(disease_severity),
+            rust.perdisk=sum(disease_severity)/n(),
+            mycoparasitism=sum(mycoparasitism),
+            mycoparasitism.perdisk=sum(mycoparasitism)/n(),
+            n=n(), .groups='keep') 
+
+```
+
+# Visualize phylogenetic patterns for rust disease severity and mycoparasitism
+```{r plot, fig.height=6, fig.width=7, echo=F, message=F, out.width="100%"}
+make_phyloFigure <- function(
+  dat.iso,
+  tree
+){
+  require(ggtree)
+  require(ggtext)
+  require(patchwork)
+
+  p <- (ggtree(tree) %<+% dplyr::select(dat.iso,id,species,clade,region)) +
+    geom_nodelab(size=2.4,hjust=1.2, vjust=-0.1) +
+    geom_tippoint(aes(fill=region, x=x+0.01), size=2, shape=21, stroke=0.2) +
+    scale_fill_manual(values=c("#96702f","#40fa00"),
+                      name="Region\nof origin")+
+    geom_treescale(x=0,y=0.5, fontsize=2.75) +
+    scale_y_continuous(limits=c(0.5,50.5), expand=c(0.01,0.01))+
+    xlim(c(-0.025,0.535)) +
+    theme(legend.position = c(0.15,0.875),
+          plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+  for(i in unique(dat.iso$species)){
+    dat.tmp <- filter(p$data, species==i) %>% arrange(y)
+    lab <- case_when(i=="C_delicatulum" ~ "italic('C. delicatulum')",
+                     i=="C_lycoperdinum" ~ "italic('C. lycoperdinum')",
+                     i=="C_cf_cladosporioides_4" ~ "italic('C.')~plain('cf.')~italic('cladosporioides')~4",
+                     i=="C_inversicolor" ~"italic('C. inversicolor')",
+                     i=="C_sp_5" ~ "italic('C.')~plain('sp.')~5",
+                     i=="C_uwebraunianum" ~"italic('C. uwebraunianum')",
+                     i=="C_pseudocladosporioides" ~"italic('C. pseudocladosporioides')",
+                     i=="C_cladosporioides" ~"italic('C. cladosporioides')",
+                     i=="C_xylophilum" ~"italic('C. xylophilum')",
+                     i=="C_sp_10" ~ "italic('C.')~plain('sp.')~10",
+                     i=="C_perangustum" ~"italic('C. perangustum')",
+                     i=="C_ramotenellum" ~"italic('C. ramotenellum')",
+                     i=="C_limoniforme" ~"italic('C. limoniforme')",
+                     i=="C_allicinum" ~"italic('C. allicinum')",
+                     i=="C_macrocarpum" ~"italic('C. macrocarpum')",
+                     T ~ "italic('test')")
+    hj <- case_when(i=="C_lycoperdinum" ~ 0.5,
+                    T ~ 0)
+    if(nrow(dat.tmp)>1){
+      p <- p + geom_strip(first(dat.tmp$label),
+                          last(dat.tmp$label),
+                          barsize=1, label=lab,
+                          offset=0.015, offset.text=0.01,
+                          parse=T,extend = 0.3, fontsize=2.7)
+    }
+    if(nrow(dat.tmp)==1){
+      p <- p + geom_strip(first(dat.tmp$label),
+                          last(dat.tmp$label),
+                          barsize=1, label=lab,
+                          offset=0.015, offset.text=0.01,
+                          parse=T, extend = 0.3, fontsize=2.7)
+    }
+  }
+  #Add species complex labels
+  cladeLabs <- data.frame(label=c("*C. cladosporiodes*<br>species complex",
+                                  "*C. herbarum* species<br>complex"),
+                          x=c(-0.025,0.025),
+                          y=c(20.45,7.5))
+  p <- p + geom_richtext(data=cladeLabs, aes(label=label), size=3,
+                         label.color = NA, fill=NA, hjust=0) +
+    geom_segment(data=cladeLabs,
+                 x=0.015,xend=0.045,y=18.5,yend=14.75, size=0.5,
+                 arrow=arrow(length = unit(0.15, "cm"))) +
+    geom_segment(data=cladeLabs,
+                 x=0.105 ,xend=0.135,y=6.7,yend=4.7, size=0.5,
+                 arrow=arrow(length = unit(0.15, "cm")))
+
+  p.dat <- dat.iso %>% ungroup %>%
+    transmute(yval=as.integer(factor(id,levels=rev(get_taxa_name(p)))),
+              region=region,
+              'Myco-\nparasitism'=scale(mycoparasitism.perdisk)[,1],
+              'Rust\nseverity'=scale(rust.perdisk)[,1]) %>%
+    pivot_longer(3:4) %>%
+    ggplot() +
+    geom_bar(aes(x=yval, y=value), size=0.1,
+             stat="identity", colour="black", width = 0.5)+
+    #scale_fill_manual(values=c("#96702f","#40fa00"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color='grey75') +
+    scale_x_continuous(limits=c(0.5,50.5), expand=c(0.01,0.01))+
+    facet_wrap(~name) +
+    cowplot::theme_cowplot() +
+    cowplot::panel_border() +
+    theme(strip.background = element_blank(),
+          strip.text=element_text(size=10),
+          axis.title = element_blank(),
+          axis.text.y = element_blank(),
+          axis.text.x = element_text(size=8),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_line(color='grey75'),
+          axis.line = element_blank(),
+          plot.margin = unit(c(0, 0, 0, 0), "cm"),
+          legend.position = 'none')
+
+  for(i in unique(dat.iso$species)){
+    yint <- p$data %>% filter(species==i) %$% y %>% max + 0.5
+    p.dat <- p.dat + geom_vline(xintercept = yint, linetype='dotted', color='grey75')
+  }
+  p.dat <- p.dat + geom_vline(xintercept = 0.5, linetype='dotted', color='grey75')
+
+  p + p.dat +
+    plot_layout(widths=c(4,1.5))
+}
+phyloFig <- make_phyloFigure(dat.iso, tree)
+ggsave("output/phyloFigure.jpg", phyloFig, width=7, height=6)
+phyloFig
+```
+**Caption:** Multigene maximum likelihood phylogeny of the 50 *Cladosporium* isolates used in rust
+disease modification assays (bootstap support &gt; 50% shown). Colored points indicate the
+geographic origin of individual isolates and conspecific clusters are annotated with species-level
+taxonomic identifications. Bar plots for each isolate (right) indicate the mean number of leaf disk
+trials where mycoparasitism was observed and the mean number of rust uredinia per leaf disk
+(rust severity). Values for mycoparasitism and rust severity are scaled and zero-centered.
+
+# Test for phylogenetic signal 
+Using [Blomberg's *K*](https://onlinelibrary.wiley.com/doi/10.1111/j.0014-3820.2003.tb00285.x) with permutation test implemented in R-package [phylosignal](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4799788/). For this test we will use the mean values for each species .
+```{r phyloSignal, message=F, warning=F}
+
+# Get species means
+dat.spp <- dat.iso %>% group_by(species) %>%
+  summarise(Rust_severity=sum(rust.perdisk)/n(),
+            Mycoparasitism=sum(mycoparasitism.perdisk)/n(),
+            Region=region[1],
+            id=id[1]) %>%
+  mutate(Region=as.numeric(as.factor(Region))) %>%
+  dplyr::select(-species) %>%
+  column_to_rownames("id")
+# Subset tree to one representative per species
+tree.spp <- tree %>%
+  keep.tip(rownames(dat.spp))
+# Make combined tree/data object for analysis
+p4d <- phylobase::phylo4d(tree.spp, dat.spp)
+
+# Run test for phylogenetic signal using Blomberg's K
+phylo.spp <- phylosignal::phyloSignal(p4d = p4d, method = "K", reps=1999)
+tibble(response=rownames(phylo.spp$stat),
+       K=phylo.spp$stat$K,
+       p=phylo.spp$pvalue$K)
+```
+
+The figure above suggests that the high *K* value for mycoparasitism is largely due to the difference between the *C. cladosporiodes* species complex and the *C. herbarum* species complex. This pattern is even more clear in a boxplot showing the mean values for each species within each species complex.
+
+```{r, echo=F, message=F, fig.height=4, fig.width=6, out.width="65%"}
+make_boxplot <- function(
+  dat.iso
+){
+  dat.iso %>% group_by(species, clade) %>%
+    summarise("Rust severity<br><span style='font-size:9pt'>(avg. # of uredinia/leaf disk)</span>"=sum(rust.perdisk)/n(),
+              "Mycoparasitism<br><span style='font-size:9pt'>(proportion of leaf disks detected)</span>"=sum(mycoparasitism.perdisk)/n()) %>%
+    pivot_longer(3:4) %>%
+    mutate(clade=paste0("*C. ",clade,"*")) %>%
+    ggplot(aes(x=clade, value))+
+    geom_boxplot(outlier.colour = NA)+
+    geom_point(position = position_jitter(width=0.15), shape=21, fill="white")+
+    facet_wrap(~name, ncol=2,scales = "free_y") +
+    ggthemes::theme_few()+
+    theme(axis.title = element_blank(),
+          axis.text.x = element_markdown(),
+          axis.text.y = element_markdown(size=8),
+          strip.text = element_markdown(size=11))
+}
+make_boxplot(dat.iso)
+ggsave("output/boxplot.jpg", width=6, height=3.5)
+```
+
+# Phylogenetic regression
+In order to test the significance of the patterns observed across the entire data set above we need to account for the non-independence of species across the phylogenetic tree and the inclusion of multiple replicates of each isolate. In addition, we need to account for possible correlation of leaf disks co-occuring on the same plate during the experiment. In order to fit this type of phylogenetic mixed-model we will take a flexible Bayesian approach using the R-package [brms](https://paul-buerkner.github.io/brms/) and [baytestR](https://easystats.github.io/bayestestR/).
+
+## Rust severity
+First we will fit a model of rust severity, where the count of rust uredinia on a leaf disk is the response in a phylogenetic glmm with a negative binomial error distribution. Additional random intercept terms are included for isolate and plate. 
+
+```{r fig.height=8, fig.width=8, warning=F, message=F, results='hide'}
+#duplicate isolate id column to allow a separate random effects term for repeated measures
+dat$spp <- dat$id
+#get variance-covariance matrix from tree
+A <- ape::vcv.phylo(tree)
+
+model_rust <- brm(
+  disease_severity ~ clade + region + 
+    (1|plate) + (1|spp) +
+    (1|gr(id, cov = A)),
+  data = dat, 
+  family = negbinomial(), 
+  data2 = list(A = A),
+  chains = 4, cores = 8, iter = 4000,
+  control = list(adapt_delta = 0.995),
+  sample_prior = T,
+  save_pars = save_pars(all = TRUE),
+  silent = 2, refresh = 0,
+  seed = 1234
+)
+plot(model_rust, N=7)
+
+```
+
+We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
+
+```{r}
+pp_check(model_rust, nsamples = 1000)
+```
+
+We can also check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
+
+```{r, warning=FALSE}
+(loo_rust <- loo(model_rust, cores=parallel::detectCores(), moment_match = TRUE))
+plot(loo_rust)
+```
+
+Finally, we can examine the evidence for our (fixed) effects of interest from the posterior distribution
+```{r, warning=FALSE}
+describe_posterior(model_rust, test = c("p_direction", "rope"))
+```
+
+## Mycoparasitism
+
+Because mycoparasitism was measured as presence / absence on each leaf disk, we will fit a similar model using a binomial distribution. In addition, because our measure of mycoparasitism depends on the presence of uredinia (more uredinia means more opportunities to detect mycoparasitism) we will also include the number of uredinia as a fixed effect in the model.
+
+```{r, fig.height=8, fig.width=8, warning=F, message=F, results='hide'}
+#scale uredinia count
+dat$disease_severity_sc <- scale(dat$disease_severity)
+
+model_myco <- brm(
+  mycoparasitism ~ disease_severity_sc + clade + region + 
+    (1|plate) + (1|spp) +
+    (1|gr(id, cov = A)),
+  data = dat, 
+  family = bernoulli(), 
+  data2 = list(A = A),
+  chains = 4, cores = 8, iter = 4000,
+  control = list(adapt_delta = 0.995),
+  sample_prior = T,
+  save_pars = save_pars(all = TRUE),
+  silent = 2, refresh = 0,
+  seed=1234
+)
+plot(model_myco, N=7)
+
+```
+
+Visual check of model fit using data simulated from the posterior distribution
+
+```{r}
+pp_check(model_myco, nsamples=1000)
+```
+
+Check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
+
+```{r, warning=FALSE}
+(loo_rust <- loo(model_myco, cores=parallel::detectCores(), moment_match = TRUE))
+plot(loo_rust)
+```
+
+Finally, we can examine the evidence for our (fixed) effects of interest from the posterior distribution
+```{r, warning=FALSE}
+describe_posterior(model_myco, test = c("p_direction", "rope"))
+```
+
+
+

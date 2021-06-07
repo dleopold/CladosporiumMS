@@ -1,0 +1,203 @@
+isolate,complex,treatment,disease_severity,mycoparasitism
+SKT2L3C4,cladosporioides,Autoclaved,60,0
+SKT2L3C4,cladosporioides,Autoclaved,104,1
+SKT2L3C4,cladosporioides,Autoclaved,77,0
+SKT2L3C4,cladosporioides,Autoclaved,63,0
+SKT2L3C4,cladosporioides,Autoclaved,53,0
+SKT2L3C4,cladosporioides,Autoclaved,59,0
+SKT2L3C4,cladosporioides,Autoclaved,22,0
+SKT2L3C4,cladosporioides,Autoclaved,75,0
+SNOT5L3C34,cladosporioides,Autoclaved,73,0
+SNOT5L3C35,cladosporioides,Autoclaved,129,0
+SNOT5L3C35,cladosporioides,Autoclaved,73,0
+SNOT5L3C35,cladosporioides,Autoclaved,44,0
+SNOT5L3C35,cladosporioides,Autoclaved,44,0
+SNOT5L3C35,cladosporioides,Autoclaved,42,0
+SNOT5L3C35,cladosporioides,Autoclaved,40,0
+SNOT5L3C35,cladosporioides,Autoclaved,33,0
+SNOT5L3C35,cladosporioides,Autoclaved,36,0
+YKT3L5C19,cladosporioides,Autoclaved,48,0
+YKT3L5C19,cladosporioides,Autoclaved,57,0
+YKT3L5C19,cladosporioides,Autoclaved,49,0
+YKT3L5C19,cladosporioides,Autoclaved,62,0
+YKT3L5C19,cladosporioides,Autoclaved,74,0
+YKT3L5C19,cladosporioides,Autoclaved,93,0
+YKT3L5C19,cladosporioides,Autoclaved,64,0
+YKT3L5C19,cladosporioides,Autoclaved,37,0
+TIET5L1C32,cladosporioides,Autoclaved,83,0
+TIET5L1C32,cladosporioides,Autoclaved,62,0
+TIET5L1C32,cladosporioides,Autoclaved,27,0
+TIET5L1C32,cladosporioides,Autoclaved,122,0
+TIET5L1C32,cladosporioides,Autoclaved,102,0
+TIET5L1C32,cladosporioides,Autoclaved,111,0
+TIET5L1C32,cladosporioides,Autoclaved,90,0
+TIET5L1C32,cladosporioides,Autoclaved,33,0
+TIET5L1C32,cladosporioides,Autoclaved,63,0
+SKT2L3C4,cladosporioides,Filtered,27,0
+SKT2L3C4,cladosporioides,Filtered,51,0
+SKT2L3C4,cladosporioides,Filtered,51,0
+SKT2L3C4,cladosporioides,Filtered,37,0
+SKT2L3C4,cladosporioides,Filtered,85,0
+SKT2L3C4,cladosporioides,Filtered,40,0
+SKT2L3C4,cladosporioides,Filtered,35,0
+SKT2L3C4,cladosporioides,Filtered,39,0
+SKT2L3C4,cladosporioides,Filtered,39,0
+SNOT5L3C35,cladosporioides,Filtered,35,0
+SNOT5L3C35,cladosporioides,Filtered,42,0
+SNOT5L3C35,cladosporioides,Filtered,37,0
+SNOT5L3C35,cladosporioides,Filtered,66,0
+SNOT5L3C35,cladosporioides,Filtered,54,0
+SNOT5L3C35,cladosporioides,Filtered,55,0
+SNOT5L3C35,cladosporioides,Filtered,40,0
+SNOT5L3C35,cladosporioides,Filtered,49,0
+SNOT5L3C35,cladosporioides,Filtered,41,0
+YKT3L5C19,cladosporioides,Filtered,89,0
+YKT3L5C19,cladosporioides,Filtered,102,0
+YKT3L5C19,cladosporioides,Filtered,74,0
+YKT3L5C19,cladosporioides,Filtered,85,0
+YKT3L5C19,cladosporioides,Filtered,60,0
+YKT3L5C19,cladosporioides,Filtered,37,0
+YKT3L5C19,cladosporioides,Filtered,35,0
+YKT3L5C19,cladosporioides,Filtered,6,0
+TIET5L1C32,cladosporioides,Filtered,46,0
+TIET5L1C32,cladosporioides,Filtered,76,0
+TIET5L1C32,cladosporioides,Filtered,56,0
+TIET5L1C32,cladosporioides,Filtered,72,0
+TIET5L1C32,cladosporioides,Filtered,89,1
+TIET5L1C32,cladosporioides,Filtered,65,0
+TIET5L1C32,cladosporioides,Filtered,47,0
+TIET5L1C32,cladosporioides,Filtered,72,0
+SKT2L3C4,cladosporioides,Live,29,1
+SKT2L3C4,cladosporioides,Live,27,1
+SKT2L3C4,cladosporioides,Live,50,1
+SKT2L3C4,cladosporioides,Live,58,1
+SKT2L3C4,cladosporioides,Live,41,1
+SKT2L3C4,cladosporioides,Live,44,1
+SKT2L3C4,cladosporioides,Live,66,1
+SNOT5L3C35,cladosporioides,Live,51,1
+SNOT5L3C35,cladosporioides,Live,58,1
+SNOT5L3C35,cladosporioides,Live,42,1
+SNOT5L3C35,cladosporioides,Live,25,1
+SNOT5L3C35,cladosporioides,Live,55,1
+SNOT5L3C35,cladosporioides,Live,58,1
+SNOT5L3C35,cladosporioides,Live,27,1
+YKT3L5C19,cladosporioides,Live,45,1
+YKT3L5C19,cladosporioides,Live,36,1
+YKT3L5C19,cladosporioides,Live,31,1
+YKT3L5C19,cladosporioides,Live,34,1
+YKT3L5C19,cladosporioides,Live,9,1
+YKT3L5C19,cladosporioides,Live,10,1
+YKT3L5C19,cladosporioides,Live,41,1
+YKT3L5C19,cladosporioides,Live,52,1
+YKT3L5C19,cladosporioides,Live,47,1
+TIET5L1C32,cladosporioides,Live,47,1
+TIET5L1C32,cladosporioides,Live,22,1
+TIET5L1C32,cladosporioides,Live,49,1
+TIET5L1C32,cladosporioides,Live,48,1
+TIET5L1C32,cladosporioides,Live,42,1
+TIET5L1C32,cladosporioides,Live,27,1
+TIET5L1C32,cladosporioides,Live,51,1
+TIET5L1C32,cladosporioides,Live,37,1
+NA,NA,Neg. control,76,0
+NA,NA,Neg. control,47,0
+NA,NA,Neg. control,65,0
+NA,NA,Neg. control,101,0
+NA,NA,Neg. control,85,0
+NA,NA,Neg. control,70,0
+NA,NA,Neg. control,62,0
+NA,NA,Neg. control,100,0
+NA,NA,Neg. control,55,0
+NA,NA,Neg. control,75,0
+NA,NA,Neg. control,61,0
+NA,NA,Neg. control,87,0
+NA,NA,Neg. control,67,0
+NA,NA,Neg. control,57,0
+NA,NA,Neg. control,81,0
+NA,NA,Neg. control,75,0
+NA,NA,Neg. control,82,0
+NA,NA,Neg. control,76,0
+NA,NA,Neg. control,47,0
+NA,NA,Neg. control,65,0
+NA,NA,Neg. control,101,0
+NA,NA,Neg. control,85,0
+NA,NA,Neg. control,70,0
+NA,NA,Neg. control,62,0
+NA,NA,Neg. control,100,0
+DOT3L1C15,herbarum,Autoclaved,77,0
+DOT3L1C15,herbarum,Autoclaved,68,0
+DOT3L1C15,herbarum,Autoclaved,75,0
+DOT3L1C15,herbarum,Autoclaved,53,0
+DOT3L1C15,herbarum,Autoclaved,55,0
+DOT3L1C15,herbarum,Autoclaved,54,0
+DOT3L1C15,herbarum,Autoclaved,83,0
+DOT3L1C15,herbarum,Autoclaved,37,0
+TIET5L2C35,herbarum,Autoclaved,72,0
+TIET5L2C35,herbarum,Autoclaved,73,0
+TIET5L2C35,herbarum,Autoclaved,62,0
+TIET5L2C35,herbarum,Autoclaved,60,0
+TIET5L2C35,herbarum,Autoclaved,53,0
+TIET5L2C35,herbarum,Autoclaved,55,0
+TIET5L2C35,herbarum,Autoclaved,47,0
+TIET5L2C35,herbarum,Autoclaved,74,0
+TIET5L2C35,herbarum,Autoclaved,55,0
+TIET3L5C26,herbarum,Autoclaved,119,0
+TIET3L5C26,herbarum,Autoclaved,74,0
+TIET3L5C26,herbarum,Autoclaved,114,0
+TIET3L5C26,herbarum,Autoclaved,76,0
+TIET3L5C26,herbarum,Autoclaved,53,0
+TIET3L5C26,herbarum,Autoclaved,91,0
+TIET3L5C26,herbarum,Autoclaved,52,0
+TIET3L5C26,herbarum,Autoclaved,73,0
+DOT3L1C15,herbarum,Filtered,50,0
+DOT3L1C15,herbarum,Filtered,79,0
+DOT3L1C15,herbarum,Filtered,46,0
+DOT3L1C15,herbarum,Filtered,38,0
+DOT3L1C15,herbarum,Filtered,52,0
+DOT3L1C15,herbarum,Filtered,40,0
+DOT3L1C15,herbarum,Filtered,61,0
+DOT3L1C15,herbarum,Filtered,43,0
+DOT3L1C15,herbarum,Filtered,47,0
+TIET5L2C35,herbarum,Filtered,12,0
+TIET5L2C35,herbarum,Filtered,63,0
+TIET5L2C35,herbarum,Filtered,70,0
+TIET5L2C35,herbarum,Filtered,33,0
+TIET5L2C35,herbarum,Filtered,67,0
+TIET5L2C35,herbarum,Filtered,88,0
+TIET5L2C35,herbarum,Filtered,83,1
+TIET5L2C35,herbarum,Filtered,80,1
+TIET5L2C35,herbarum,Filtered,58,1
+TIET3L5C26,herbarum,Filtered,64,0
+TIET3L5C26,herbarum,Filtered,25,0
+TIET3L5C26,herbarum,Filtered,60,0
+TIET3L5C26,herbarum,Filtered,26,0
+TIET3L5C26,herbarum,Filtered,49,0
+TIET3L5C26,herbarum,Filtered,44,0
+TIET3L5C26,herbarum,Filtered,62,0
+TIET3L5C26,herbarum,Filtered,60,0
+TIET3L5C26,herbarum,Filtered,45,0
+DOT3L1C15,herbarum,Live,68,0
+DOT3L1C15,herbarum,Live,64,1
+DOT3L1C15,herbarum,Live,20,0
+DOT3L1C15,herbarum,Live,32,0
+DOT3L1C15,herbarum,Live,33,1
+DOT3L1C15,herbarum,Live,12,0
+DOT3L1C15,herbarum,Live,52,0
+DOT3L1C15,herbarum,Live,76,1
+DOT3L1C15,herbarum,Live,40,0
+TIET5L2C35,herbarum,Live,35,1
+TIET5L2C35,herbarum,Live,43,1
+TIET5L2C35,herbarum,Live,12,0
+TIET5L2C35,herbarum,Live,21,1
+TIET5L2C35,herbarum,Live,9,0
+TIET5L2C35,herbarum,Live,41,1
+TIET5L2C35,herbarum,Live,51,1
+TIET5L2C35,herbarum,Live,53,0
+TIET3L5C26,herbarum,Live,46,0
+TIET3L5C26,herbarum,Live,78,0
+TIET3L5C26,herbarum,Live,86,0
+TIET3L5C26,herbarum,Live,69,1
+TIET3L5C26,herbarum,Live,39,0
+TIET3L5C26,herbarum,Live,58,0
+TIET3L5C26,herbarum,Live,103,0
+TIET3L5C26,herbarum,Live,74,0
+TIET3L5C26,herbarum,Live,80,0
