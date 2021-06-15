@@ -5,6 +5,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
+Load packages and data
 ```{r setup, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(magrittr)
@@ -12,112 +13,156 @@ library(glmmTMB)
 library(emmeans)
 library(multcomp)
 library(ggtext)
+library(brms)
+library(bayestestR)
+library(ggdist)
 
 #Import raw data
 dat <- read.csv("data/Experiment2.csv")
+dat$treatment[dat$treatment=="Pos. control"] <- "Live"
 
+#Subset experomental treatment samples
+dat.expt <- dat %>% filter(!is.na(isolate)) %>%
+  mutate(plate=paste(plate,complex,sep="-"))
+
+#Subset negative control samples
+dat.neg <- dat %>% filter(is.na(isolate)) %>%
+  mutate(plate=paste(plate,complex,sep="-"))
 ```
 
-# Herbarum species complex
+# Fit negative binomial mixed-model with brms.
+Fixed effects in this model include the experimental treatment, the species complex of the *Cladosporium* isolates, and their interaction. Isolate identity and plate (each holding 2-3 leaf disks) and included as random intercept terms. 
 
-First we will fit the model and validate the model assumptions. We will use a negative binomial error distribution to account for our over-dispersed count data.
-
-```{r, warning=F, message=F, out.width="100%"}
-dat.herb <- dat %>% 
-  filter(is.na(complex) | complex!='cladosporioides')
-
-mod.herb <- glmmTMB(disease_severity ~ treatment, 
-                    data=dat.herb, family='nbinom2') 
-performance::check_model(mod.herb)
+```{r fig.height=10, fig.width=8, warning=F, message=F, results='hide'}
+model_e2 <- brm(
+  disease_severity ~ treatment * complex + (1|plate) + (1|isolate),
+  data = dat.expt, 
+  family = negbinomial(), 
+  chains = 4, cores = 4, iter = 4000,
+  control = list(adapt_delta = 0.999),
+  prior=prior(cauchy(0, 2.5), class='b'),
+  sample_prior = T,
+  save_pars = save_pars(all = TRUE),
+  silent = 2, refresh = 0,
+  seed = 80
+)
+plot(model_e2, N=9)
 ```
 
-Now we will test for overall variation among the treatments using a likelihood ratio test.
-
-```{r, warning=F}
-mod.herb.null <- glmmTMB(disease_severity ~ 1 , data=dat.herb, family='nbinom2') 
-
-anova(mod.herb, mod.herb.null)
-
-```
-
-Now we will look at which levels of the treatment differ using a post-hoc test.
+We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
 
 ```{r}
-herb.marginal <- emmeans(mod.herb, ~ treatment)
-pairs(herb.marginal)
+pp_check(model_e2, nsamples = 100)
 ```
 
-# Cladosporioides species complex
+We can also check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
 
-First we will fit the model and validate the model assumptions. 
-
-```{r, warning=F, message=F, out.width="100%"}
-dat.clad <- dat %>% 
-  filter(is.na(complex) | complex!='herbarum')
-
-mod.clad <- glmmTMB(disease_severity ~ treatment , 
-                    dispformula = ~ treatment,
-                    data=dat.clad, family='nbinom2') 
-performance::check_model(mod.clad)
+```{r, warning=FALSE}
+(loo_rust <- loo(model_e2, cores=parallel::detectCores(), moment_match = TRUE))
+plot(loo_rust)
 ```
 
-Now we can test for overall variation among the treatments using a likelihood ratio test.
+# Fit negative control model
+Because negative control samples do not involve any isolates, they do not fit the main model structure. In order to use these samples as a reference point we can instead fit a simple, intercept only model (with a plate-level random intercept), with an negative binomial error structure in brms. We can then use the posterior distribution and its HDI as a reference against which we can compare the other treaments
 
-```{r, warning=F}
-mod.clad.null <- glmmTMB(disease_severity ~ 1, data=dat.clad, family='nbinom2') 
-
-anova(mod.clad, mod.clad.null) 
-
+```{r fig.height=5, fig.width=8, warning=F, message=F, results='hide'}
+model_neg <- brm(
+  disease_severity ~ 1 + (1|plate),
+  data = dat.neg, 
+  family = negbinomial(), 
+  chains = 4, cores = 4, iter = 4000,
+  control = list(adapt_delta = 0.999),
+  sample_prior = T,
+  save_pars = save_pars(all = TRUE),
+  silent = 2, refresh = 0,
+  seed = 80
+)
+plot(model_neg, N=3)
 ```
 
-Now we will look at which levels of the treatment differ using a post-hoc test.
+We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
 
 ```{r}
-clad.marginal <- emmeans(mod.clad, ~ treatment)
-pairs(clad.marginal)
+pp_check(model_neg, nsamples = 100)
 ```
 
-# Plot treatment effects for both species complexes
+****
 
-```{r, echo=F, fig.height=3.5, fig.width=7, out.width="100%"}
+# Results
+We will visualize the results by showing the posterior distribution and 89% HDIs for each treatment and species complex combination. Within each species complex we will present the probability of direction and the 89% HDI of the decrease in disease severity proceeding from Autoclaved -> Filtered -> Live *Cladosporium* inoculum. We will also overlay the median and 89% HDI of disease severity for the negative control (sterile water) samples.
 
-fig.dat <- bind_rows(
-  cld(herb.marginal, decreasing=F) %>%
-  as.data.frame %>%
-    mutate(complex="**(b)** *C. herbarum*"),
-  cld(clad.marginal, decreasing=F) %>%
-  as.data.frame %>%
-    mutate(complex="**(a)** *C. cladosporioides*"),
-) %>%
-  mutate(group=str_remove_all(.group, " ")) %>%
-  transmute(
+
+```{r fig.width=7, fig.height=4.5}
+# Extract posterior distribution of negative control samples
+neg_pr <- posterior_epred(model_neg, re_formula=NA, resp=Intercept)
+
+# Posterior distributions of experimental treatments x species complex
+d_pred <- dat.expt %>%
+  dplyr::select(complex, treatment) %>%
+  distinct() %>%
+  mutate(combo=paste(complex,treatment,sep="_"))
+pr <- posterior_epred(model_e2, newdata=d_pred, re_formula=NA)
+colnames(pr) <- d_pred$combo
+
+# Make the figure
+p <- pr %>% 
+  data.frame %>% pivot_longer(everything()) %>%
+  separate(name, into=c("complex", "treatment"), sep="_") %>%
+  mutate(
+    complex=case_when(
+      complex=='herbarum' ~ "*C. herbarum* complex",
+      complex=='cladosporioides' ~ "*C. cladosporioides* complex"
+  )) %>%
+  ggplot(aes(x=treatment, y=value)) +
+  stat_histinterval(slab_type = 'pdf', trim = T, scale=0.5,
+                    .width = c(0.89), point_interval='median_hdi') +
+    #ggsci::scale_fill_npg()+
+  geom_hline(yintercept = hdi(neg_pr, .width=0.89)[1], linetype='dotted') +
+  geom_hline(yintercept = hdi(neg_pr, .width=0.89)[2], linetype='dotted') +
+  geom_hline(yintercept = median(neg_pr)) +
+  scale_y_continuous(breaks=c(25, 50, 75, 100, 125)) +
+  coord_cartesian(ylim=c(25, 160)) +
+  facet_wrap(~complex) +
+  labs(y="Disease severity (# of uredinia") +
+  ggthemes::theme_few() +
+  theme(legend.position = 'none',
+        axis.title.x = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_markdown(size=15, hjust = 0))
+
+# Define a function to calculate treatment comparisons and add to the figure
+compareTreatments <- function(gg, y, a, b, complex, pr){
+  pdist <- pr %>% data.frame %>%
+    transmute(pdist=!!sym(a)-!!sym(b)) %$% pdist
+  PD <- pd(pdist) %>% as.numeric %>%
+    multiply_by(100) %>% round(1)
+  HDI <- hdi(pdist, .width=0.89) %>% 
+    apply(1:2, function(x)round(x,1))
+  df <- data.frame(
+    y=y, 
     complex=complex,
-    treatment=factor(treatment, levels=c("Neg. control", "Autoclaved", "Filtered", "Live")),
-    mean=exp(emmean),
-    UCI=exp(upper.CL),
-    LCI=exp(lower.CL),
-    TukLet=case_when(
-      group=="3" ~ "a",
-      group=="23" ~ "ab",
-      group=="2" ~ "b",
-      group=="12" ~ "bc",
-      group=="1" ~ "c"
-  ))
+    group1=str_extract(a, "[^_]+$"),
+    group2=str_extract(b, "[^_]+$"),
+    PD=PD,
+    HDI=paste(HDI,collapse = "—")
+  )
+  gg + ggpubr::stat_pvalue_manual(df, label="pd = {PD}%\n[{HDI}]", y.position = "y",
+                          tip.length = 0.01,bracket.shorten = 0.1, vjust=-0.1)
+}
 
-ggplot(fig.dat, aes(x=treatment, y=mean)) +
-   geom_bar(stat='identity', color='black', fill='grey80')+
-   geom_pointrange(aes(ymin=LCI,ymax=UCI)) +
-   ylim(c(0,88)) +
-   labs(y="Rust severity (# of uredinia)")+
-   facet_wrap(~complex) +
-   geom_text(aes(label=TukLet, y=UCI), vjust=-0.5, size=4.5) +
-   theme_classic() +
-   theme(axis.title.x = element_blank(),
-         axis.title.y = element_markdown(size=13),
-         strip.text = element_markdown(size=13, hjust=0),
-         strip.background = element_blank())
-ggsave("output/figure_expt2.jpg", width=7, height=3.5)
-
-
+# Add summary stats
+p %<>% compareTreatments(115, "cladosporioides_Autoclaved","cladosporioides_Filtered",
+               "*C. cladosporioides* complex", pr) %>%
+  compareTreatments(115, "herbarum_Autoclaved","herbarum_Filtered",
+               "*C. herbarum* complex", pr) %>%
+  compareTreatments(140, "cladosporioides_Autoclaved","cladosporioides_Live",
+               "*C. cladosporioides* complex", pr) %>%
+  compareTreatments(140, "herbarum_Autoclaved","herbarum_Live",
+               "*C. herbarum* complex", pr) %>%
+  compareTreatments(90, "cladosporioides_Filtered","cladosporioides_Live",
+               "*C. cladosporioides* complex", pr) %>%
+  compareTreatments(90, "herbarum_Filtered","herbarum_Live",
+               "*C. herbarum* complex", pr)
+ggsave( "output/figure_expt2.jpg", p, width=7, height=4.5)
+p
 ```
-

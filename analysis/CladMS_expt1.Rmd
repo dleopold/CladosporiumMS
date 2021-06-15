@@ -222,15 +222,15 @@ model_rust <- brm(
   data = dat, 
   family = negbinomial(), 
   data2 = list(A = A),
-  chains = 4, cores = 8, iter = 4000,
+  chains = 4, cores = 4, iter = 4000,
   control = list(adapt_delta = 0.995),
+  prior=prior(cauchy(0, 2.5), class='b'),
   sample_prior = T,
   save_pars = save_pars(all = TRUE),
   silent = 2, refresh = 0,
-  seed = 1234
+  seed = 80
 )
 plot(model_rust, N=7)
-
 ```
 
 We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
@@ -256,22 +256,34 @@ describe_posterior(model_rust, test = c("p_direction", "rope"))
 Because mycoparasitism was measured as presence / absence on each leaf disk, we will fit a similar model using a binomial distribution. In addition, because our measure of mycoparasitism depends on the presence of uredinia (more uredinia means more opportunities to detect mycoparasitism) we will also include the number of uredinia as a fixed effect in the model.
 
 ```{r, fig.height=8, fig.width=8, warning=F, message=F, results='hide'}
-#scale uredinia count
-dat$disease_severity_sc <- scale(dat$disease_severity)
+#scale variables for logistic model (sensu Genlam et al 2008)
+dat %<>%
+  mutate(
+    disease_severity_sc = scale(disease_severity, scale=sd(disease_severity)*2),
+    cladeHerbarum = case_when(
+      clade=="herbarum" ~ 1,
+      T ~ 0
+    ) %>% scale(scale=F),
+    regionWest = case_when(
+      region=="West" ~ 1,
+      T ~ 0
+    ) %>% scale(scale=F)
+  )
 
 model_myco <- brm(
-  mycoparasitism ~ disease_severity_sc + clade + region + 
+  mycoparasitism ~ disease_severity_sc + cladeHerbarum + regionWest + 
     (1|plate) + (1|spp) +
     (1|gr(id, cov = A)),
   data = dat, 
   family = bernoulli(), 
   data2 = list(A = A),
-  chains = 4, cores = 8, iter = 4000,
+  chains = 4, cores = 4, iter = 4000,
   control = list(adapt_delta = 0.995),
+  prior=prior(cauchy(0, 2.5), class='b'),
   sample_prior = T,
   save_pars = save_pars(all = TRUE),
   silent = 2, refresh = 0,
-  seed=1234
+  seed=80
 )
 plot(model_myco, N=7)
 
