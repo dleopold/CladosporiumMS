@@ -12,6 +12,7 @@ library(treeio)
 library(ape)
 library(brms)
 library(bayestestR)
+library(emmeans)
 
 # Source custom functions
 sourced <- list.files("src", full.names = T) %>% lapply(source)
@@ -205,11 +206,13 @@ ggsave("output/boxplot.jpg", width=6, height=3.5)
 
 # Phylogenetic regression
 In order to test the significance of the patterns observed across the entire data set above we need to account for the non-independence of species across the phylogenetic tree and the inclusion of multiple replicates of each isolate. In addition, we need to account for possible correlation of leaf disks co-occuring on the same plate during the experiment. In order to fit this type of phylogenetic mixed-model we will take a flexible Bayesian approach using the R-package [brms](https://paul-buerkner.github.io/brms/) and [baytestR](https://easystats.github.io/bayestestR/).
-
+  
+****
+  
 ## Rust severity
 First we will fit a model of rust severity, where the count of rust uredinia on a leaf disk is the response in a phylogenetic glmm with a negative binomial error distribution. Additional random intercept terms are included for isolate and plate. 
 
-```{r fig.height=8, fig.width=8, warning=F, message=F, results='hide'}
+```{r fig.height=8, fig.width=8, warning=F, message=F, results='hide', cache=T}
 #duplicate isolate id column to allow a separate random effects term for repeated measures
 dat$spp <- dat$id
 #get variance-covariance matrix from tree
@@ -236,7 +239,7 @@ plot(model_rust, N=7)
 We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
 
 ```{r}
-pp_check(model_rust, nsamples = 1000)
+pp_check(model_rust, nsamples = 500)
 ```
 
 We can also check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
@@ -248,30 +251,39 @@ plot(loo_rust)
 
 Finally, we can examine the evidence for our (fixed) effects of interest from the posterior distribution
 ```{r, warning=FALSE}
-describe_posterior(model_rust, test = c("p_direction", "rope"))
+post_rust <- describe_posterior(model_rust, test = "bf" , ci=0.89) %>% 
+  data.frame 
+
+knitr::kable(post_rust, digits=2)
 ```
 
+```{r, echo=F}
+# Estimate marginal means for interpretation of results
+em_region <- emmeans(model_rust, ~region,type = "response", level=0.89) %>% data.frame
+em_clade <- emmeans(model_rust, ~clade,type = "response", level=0.89) %>% data.frame
+```
+
+### Summary of rust disease severity model results  
+
+These results suggest that the species complex of *Cladosporium* colonizing a leaf disk does not affect rust disease severity (BF = `r round(exp(post_rust$log_BF[2]))`), with *C. herbarum* isolates predicted to have, on average, `r round(em_clade[2,2],2)` uredinia per leaf disk (89% HDI: `r em_clade[2,3:4] %>% round() %>% paste(.,sep="",collapse="-")`) and with *C. cladosporioides* isolates predicted, on average, to have `r round(em_clade[1,2])` uredinia per leaf disk (89% HDI: `r em_clade[1,3:4] %>% round() %>% paste(.,sep="",collapse="-")`).
+
+Similarly, we found no evidence that the region of origin of the *Cladosporium* isolate affects rust disease severity (BF = `r round(exp(post_rust$log_BF[3]),2)`), with western isolates predicted to have, on average, `r round(em_region[2,2],2)` uredinia per leaf disk (89% HDI: `r em_region[2,3:4] %>% round() %>% paste(.,sep="",collapse="-")`) and with *C. cladosporioides* isolates predicted, on average, to have `r round(em_region[1,2])` uredinia per leaf disk (89% HDI: `r em_region[1,3:4] %>% round() %>% paste(.,sep="",collapse="-")`).
+  
+****
+  
 ## Mycoparasitism
 
 Because mycoparasitism was measured as presence / absence on each leaf disk, we will fit a similar model using a binomial distribution. In addition, because our measure of mycoparasitism depends on the presence of uredinia (more uredinia means more opportunities to detect mycoparasitism) we will also include the number of uredinia as a fixed effect in the model.
 
-```{r, fig.height=8, fig.width=8, warning=F, message=F, results='hide'}
-#scale variables for logistic model (sensu Genlam et al 2008)
+```{r, fig.height=8, fig.width=8, warning=F, message=F, results='hide', cache=T}
+#scale disease severity to mean 0 and sd = 0.5
 dat %<>%
   mutate(
-    disease_severity_sc = scale(disease_severity, scale=sd(disease_severity)*2),
-    cladeHerbarum = case_when(
-      clade=="herbarum" ~ 1,
-      T ~ 0
-    ) %>% scale(scale=F),
-    regionWest = case_when(
-      region=="West" ~ 1,
-      T ~ 0
-    ) %>% scale(scale=F)
+    disease_severity_sc = scale(disease_severity, scale=sd(disease_severity)*2)
   )
 
 model_myco <- brm(
-  mycoparasitism ~ disease_severity_sc + cladeHerbarum + regionWest + 
+  mycoparasitism ~ disease_severity_sc + clade + region + 
     (1|plate) + (1|spp) +
     (1|gr(id, cov = A)),
   data = dat, 
@@ -279,7 +291,7 @@ model_myco <- brm(
   data2 = list(A = A),
   chains = 4, cores = 4, iter = 4000,
   control = list(adapt_delta = 0.995),
-  prior=prior(cauchy(0, 2.5), class='b'),
+  prior=prior(cauchy(0, 5), class='b'),
   sample_prior = T,
   save_pars = save_pars(all = TRUE),
   silent = 2, refresh = 0,
@@ -292,7 +304,7 @@ plot(model_myco, N=7)
 Visual check of model fit using data simulated from the posterior distribution
 
 ```{r}
-pp_check(model_myco, nsamples=1000)
+pp_check(model_myco, nsamples=500)
 ```
 
 Check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
@@ -304,8 +316,20 @@ plot(loo_rust)
 
 Finally, we can examine the evidence for our (fixed) effects of interest from the posterior distribution
 ```{r, warning=FALSE}
-describe_posterior(model_myco, test = c("p_direction", "rope"))
+post_myco <- describe_posterior(model_myco, test = "bf" , ci=0.89) %>% 
+  data.frame 
+knitr::kable(post_myco, digits=2)
+
 ```
 
+```{r, echo=F}
+# Estimate marginal means for interpretation of results
+em_region <- emmeans(model_myco, ~region,type = "response", level=0.89) %>% data.frame
+em_clade <- emmeans(model_myco, ~clade,type = "response", level=0.89) %>% data.frame
+```
 
+### Summary of mycoparasitism model results  
 
+We found no evidence (BF = `r round(exp(post_myco$log_BF[4]),2)`) that *Cladosporium* isolates differed, on average, in their likelihood of displaying a mycoparasitism phenotype based on whether they originated from east (89% HDI: `r em_region[1,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) or west (89% HDI: `r em_region[2,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) of the Cascades. 
+
+We did find evidence that *Cladosporium* isolates from different species complexes different in their likelihood of being mycoparasitic (BF = `r round(exp(post_myco$log_BF[3]),2)`). Specifically, the predicted probability of observing mycoparasitism in *C. herbarum* isolates was `r round(em_clade[2,2],2)` (89% HDI: `r em_clade[2,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`), while the probability of observing mycoparasitism in *C. cladosporioides* isolates was `r round(em_clade[1,2],2)` (89% HDI: `r em_clade[1,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`).

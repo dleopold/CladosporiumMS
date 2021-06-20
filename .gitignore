@@ -4,3 +4,5 @@
 .Ruserdata
 *.docx
 .~lock*
+analysis/*_cache/*
+analysis/*_files/*

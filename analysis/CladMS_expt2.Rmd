@@ -9,9 +9,6 @@ Load packages and data
 ```{r setup, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(magrittr)
-library(glmmTMB)
-library(emmeans)
-library(multcomp)
 library(ggtext)
 library(brms)
 library(bayestestR)
@@ -21,7 +18,7 @@ library(ggdist)
 dat <- read.csv("data/Experiment2.csv")
 dat$treatment[dat$treatment=="Pos. control"] <- "Live"
 
-#Subset experomental treatment samples
+#Subset experimental treatment samples
 dat.expt <- dat %>% filter(!is.na(isolate)) %>%
   mutate(plate=paste(plate,complex,sep="-"))
 
@@ -33,7 +30,7 @@ dat.neg <- dat %>% filter(is.na(isolate)) %>%
 # Fit negative binomial mixed-model with brms.
 Fixed effects in this model include the experimental treatment, the species complex of the *Cladosporium* isolates, and their interaction. Isolate identity and plate (each holding 2-3 leaf disks) and included as random intercept terms. 
 
-```{r fig.height=10, fig.width=8, warning=F, message=F, results='hide'}
+```{r fig.height=10, fig.width=8, warning=F, message=F, results='hide', cache=T}
 model_e2 <- brm(
   disease_severity ~ treatment * complex + (1|plate) + (1|isolate),
   data = dat.expt, 
@@ -65,15 +62,13 @@ plot(loo_rust)
 # Fit negative control model
 Because negative control samples do not involve any isolates, they do not fit the main model structure. In order to use these samples as a reference point we can instead fit a simple, intercept only model (with a plate-level random intercept), with an negative binomial error structure in brms. We can then use the posterior distribution and its HDI as a reference against which we can compare the other treaments
 
-```{r fig.height=5, fig.width=8, warning=F, message=F, results='hide'}
+```{r fig.height=5, fig.width=8, warning=F, message=F, results='hide', cache=T}
 model_neg <- brm(
   disease_severity ~ 1 + (1|plate),
   data = dat.neg, 
   family = negbinomial(), 
   chains = 4, cores = 4, iter = 4000,
   control = list(adapt_delta = 0.999),
-  sample_prior = T,
-  save_pars = save_pars(all = TRUE),
   silent = 2, refresh = 0,
   seed = 80
 )
@@ -92,9 +87,9 @@ pp_check(model_neg, nsamples = 100)
 We will visualize the results by showing the posterior distribution and 89% HDIs for each treatment and species complex combination. Within each species complex we will present the probability of direction and the 89% HDI of the decrease in disease severity proceeding from Autoclaved -> Filtered -> Live *Cladosporium* inoculum. We will also overlay the median and 89% HDI of disease severity for the negative control (sterile water) samples.
 
 
-```{r fig.width=7, fig.height=4.5}
+```{r fig.width=7, fig.height=4.5, echo=F}
 # Extract posterior distribution of negative control samples
-neg_pr <- posterior_epred(model_neg, re_formula=NA, resp=Intercept)
+neg_pr <- posterior_epred(model_neg, re_formula=NA, resp="Intercept")
 
 # Posterior distributions of experimental treatments x species complex
 d_pred <- dat.expt %>%
@@ -117,13 +112,13 @@ p <- pr %>%
   stat_histinterval(slab_type = 'pdf', trim = T, scale=0.5,
                     .width = c(0.89), point_interval='median_hdi') +
     #ggsci::scale_fill_npg()+
-  geom_hline(yintercept = hdi(neg_pr, .width=0.89)[1], linetype='dotted') +
-  geom_hline(yintercept = hdi(neg_pr, .width=0.89)[2], linetype='dotted') +
-  geom_hline(yintercept = median(neg_pr)) +
+  geom_hline(yintercept = hdi(neg_pr[,1], .width=0.89)[1], linetype='dotted') +
+  geom_hline(yintercept = hdi(neg_pr[,1], .width=0.89)[2], linetype='dotted') +
+  geom_hline(yintercept = median(neg_pr[,1])) +
   scale_y_continuous(breaks=c(25, 50, 75, 100, 125)) +
   coord_cartesian(ylim=c(25, 160)) +
   facet_wrap(~complex) +
-  labs(y="Disease severity (# of uredinia") +
+  labs(y="Disease severity (# of uredinia)") +
   ggthemes::theme_few() +
   theme(legend.position = 'none',
         axis.title.x = element_blank(),
@@ -166,3 +161,20 @@ p %<>% compareTreatments(115, "cladosporioides_Autoclaved","cladosporioides_Filt
 ggsave( "output/figure_expt2.jpg", p, width=7, height=4.5)
 p
 ```
+
+We can also compare the posterior distributions of each group to the negative control to get similar metrics of significance and effect size.
+
+```{r, echo=FALSE}
+neg_pr <- pr %>%
+  data.frame %>%
+  mutate(neg=neg_pr[,1]) %>%
+  mutate_at(vars(-matches("neg")), list(~ neg - .)) %>%
+  select(-neg) 
+
+data.frame(
+  pd = apply(neg_pr, 2, function(x) bayestestR::pd(x) ) %>% unname,
+  HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),2), sep="",collapse = "-") )) %>%
+  knitr::kable(digits=2, align='l')
+
+```
+
