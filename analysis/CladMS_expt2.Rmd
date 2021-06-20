@@ -173,9 +173,12 @@ neg_pr <- pr %>%
   select(-neg) 
 cat("\n")
 data.frame(
+  treatment=colnames(neg_pr),
   pd = apply(neg_pr, 2, function(x) bayestestR::pd(x) ) %>% unname,
-  HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),2), sep="",collapse = "-") )) %>%
-  knitr::kable(digits=2, align='l')
+  HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),2), sep="",collapse = "-") ),
+  row.names = NULL) %>% 
+  pander::pander(digits=2)
+  #knitr::kable(digits=2, align='l')
 
 ```
 
