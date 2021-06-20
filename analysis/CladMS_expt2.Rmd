@@ -13,6 +13,7 @@ library(ggtext)
 library(brms)
 library(bayestestR)
 library(ggdist)
+library(ggpubr)
 
 #Import raw data
 dat <- read.csv("data/Experiment2.csv")
@@ -141,7 +142,7 @@ compareTreatments <- function(gg, y, a, b, complex, pr){
     PD=PD,
     HDI=paste(HDI,collapse = "—")
   )
-  gg + ggpubr::stat_pvalue_manual(df, label="pd = {PD}%\n[{HDI}]", y.position = "y",
+  gg + stat_pvalue_manual(df, label="pd = {PD}%\n[{HDI}]", y.position = "y",
                           tip.length = 0.01,bracket.shorten = 0.1, vjust=-0.1)
 }
 
@@ -163,14 +164,14 @@ p
 ```
 
 We can also compare the posterior distributions of each group to the negative control to get similar metrics of significance and effect size.
-
+  
 ```{r, echo=FALSE}
 neg_pr <- pr %>%
   data.frame %>%
   mutate(neg=neg_pr[,1]) %>%
   mutate_at(vars(-matches("neg")), list(~ neg - .)) %>%
   select(-neg) 
-
+cat("\n")
 data.frame(
   pd = apply(neg_pr, 2, function(x) bayestestR::pd(x) ) %>% unname,
   HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),2), sep="",collapse = "-") )) %>%
