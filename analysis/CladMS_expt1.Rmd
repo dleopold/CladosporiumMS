@@ -254,7 +254,7 @@ Finally, we can examine the evidence for our (fixed) effects of interest from th
 post_rust <- describe_posterior(model_rust, test = "bf" , ci=0.89) %>% 
   data.frame 
 
-knitr::kable(post_rust, digits=2)
+pander::pander(post_rust, digits=2)
 ```
 
 ```{r, echo=F}
@@ -318,7 +318,7 @@ Finally, we can examine the evidence for our (fixed) effects of interest from th
 ```{r, warning=FALSE}
 post_myco <- describe_posterior(model_myco, test = "bf" , ci=0.89) %>% 
   data.frame 
-knitr::kable(post_myco, digits=2)
+pander::pander(post_myco, digits=2)
 
 ```
 
@@ -330,6 +330,6 @@ em_clade <- emmeans(model_myco, ~clade,type = "response", level=0.89) %>% data.f
 
 ### Summary of mycoparasitism model results  
 
-We found no evidence (BF = `r round(exp(post_myco$log_BF[4]),2)`) that *Cladosporium* isolates differed, on average, in their likelihood of displaying a mycoparasitism phenotype based on whether they originated from east (89% HDI: `r em_region[1,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) or west (89% HDI: `r em_region[2,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) of the Cascades. 
+We found no evidence (BF = `r round(exp(post_myco$log_BF[4]),2)`) that *Cladosporium* isolates differed, on average, in their likelihood of displaying a mycoparasitism phenotype based on whether they originated from east (`r round(em_region[1,2])`; 89% HDI: `r em_region[1,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) or west (`r round(em_region[2,2])`; 89% HDI: `r em_region[2,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`) of the Cascades. 
 
 We did find evidence that *Cladosporium* isolates from different species complexes different in their likelihood of being mycoparasitic (BF = `r round(exp(post_myco$log_BF[3]),2)`). Specifically, the predicted probability of observing mycoparasitism in *C. herbarum* isolates was `r round(em_clade[2,2],2)` (89% HDI: `r em_clade[2,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`), while the probability of observing mycoparasitism in *C. cladosporioides* isolates was `r round(em_clade[1,2],2)` (89% HDI: `r em_clade[1,3:4] %>% round(2) %>% paste(.,sep="",collapse="-")`).
