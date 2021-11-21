@@ -112,19 +112,20 @@ p <- pr %>%
   ggplot(aes(x=treatment, y=value)) +
   stat_histinterval(slab_type = 'pdf', trim = T, scale=0.5,
                     .width = c(0.89), point_interval='median_hdi') +
-    #ggsci::scale_fill_npg()+
   geom_hline(yintercept = hdi(neg_pr[,1], .width=0.89)[1], linetype='dotted') +
   geom_hline(yintercept = hdi(neg_pr[,1], .width=0.89)[2], linetype='dotted') +
   geom_hline(yintercept = median(neg_pr[,1])) +
+  #annotate("text", x = 1, y = 20, label = "Arbitrary text") +
   scale_y_continuous(breaks=c(25, 50, 75, 100, 125)) +
-  coord_cartesian(ylim=c(25, 160)) +
+  coord_cartesian(ylim=c(5, 160), clip='off') +
   facet_wrap(~complex) +
   labs(y="Disease severity (# of uredinia)") +
   ggthemes::theme_few() +
   theme(legend.position = 'none',
         axis.title.x = element_blank(),
+        axis.text = element_text(color="black"),
         strip.background = element_blank(),
-        strip.text = element_markdown(size=15, hjust = 0))
+        strip.text = element_markdown(size=13, hjust = 0))
 
 # Define a function to calculate treatment comparisons and add to the figure
 compareTreatments <- function(gg, y, a, b, complex, pr){
@@ -140,13 +141,13 @@ compareTreatments <- function(gg, y, a, b, complex, pr){
     group1=str_extract(a, "[^_]+$"),
     group2=str_extract(b, "[^_]+$"),
     PD=PD,
-    HDI=paste(HDI,collapse = "—")
+    HDI=paste(HDI,collapse = "-")
   )
-  gg + stat_pvalue_manual(df, label="pd = {PD}%\n[{HDI}]", y.position = "y",
-                          tip.length = 0.01,bracket.shorten = 0.1, vjust=-0.1)
+  gg + stat_pvalue_manual(df, label="{PD}% pd\n[{HDI}]", y.position = "y", size=3.25,
+                          tip.length = 0.01, bracket.shorten = 0.1, vjust=-0.1)
 }
 
-# Add summary stats
+# Add summary stats of between treatment comparisons
 p %<>% compareTreatments(115, "cladosporioides_Autoclaved","cladosporioides_Filtered",
                "*C. cladosporioides* complex", pr) %>%
   compareTreatments(115, "herbarum_Autoclaved","herbarum_Filtered",
@@ -159,26 +160,38 @@ p %<>% compareTreatments(115, "cladosporioides_Autoclaved","cladosporioides_Filt
                "*C. cladosporioides* complex", pr) %>%
   compareTreatments(90, "herbarum_Filtered","herbarum_Live",
                "*C. herbarum* complex", pr)
-ggsave( "output/figure_expt2.jpg", p, width=7, height=4.5)
-p
-```
 
-We can also compare the posterior distributions of each group to the negative control to get similar metrics of significance and effect size.
-  
-```{r, echo=FALSE}
+# Compare treatments with negative control
 neg_pr <- pr %>%
   data.frame %>%
   mutate(neg=neg_pr[,1]) %>%
   mutate_at(vars(-matches("neg")), list(~ neg - .)) %>%
   select(-neg) 
-cat("\n")
-data.frame(
-  treatment=colnames(neg_pr),
-  pd = apply(neg_pr, 2, function(x) bayestestR::pd(x) ) %>% unname,
-  HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),2), sep="",collapse = "-") ),
-  row.names = NULL) %>% 
-  pander::pander(digits=2)
-  #knitr::kable(digits=2, align='l')
 
+neg_DF <- data.frame(
+  treatment=colnames(neg_pr),
+  pd = apply(neg_pr, 2, function(x) bayestestR::pd(x) ) %>% unname %>%
+    multiply_by(100) %>% round(1),
+  HDI = apply(neg_pr, 2, function(x) paste(round(as.numeric(bayestestR::hdi(x, ci=0.89)[2:3]),1), sep="",collapse = "-") ),
+  row.names = NULL) 
+
+negStats <- data.frame(
+  complex=rep(c("*C. herbarum* complex","*C. cladosporioides* complex"), each=3),
+  treatment=rep(c("Autoclaved","Filtered","Live"),2),
+  lab=c(
+    paste0(neg_DF$pd[1], "% pd\n[",neg_DF$HDI[1],"]"),
+    paste0(neg_DF$pd[2], "% pd\n[",neg_DF$HDI[2],"]"),
+    paste0(neg_DF$pd[3], "% pd\n[",neg_DF$HDI[3],"]"),
+    paste0(neg_DF$pd[4], "% pd\n[",neg_DF$HDI[4],"]"),
+    paste0(neg_DF$pd[5], "% pd\n[",neg_DF$HDI[5],"]"),
+    paste0(neg_DF$pd[6], "% pd\n[",neg_DF$HDI[6],"]")
+  )
+)
+
+p <- p + geom_text(data=negStats, aes(y=10, label=lab), size=3.25) 
+
+# Save and print
+ggsave( "output/figure_expt2.jpg", width=7, height=4.5)
+p
 ```
 
