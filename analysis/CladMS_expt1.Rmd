@@ -241,7 +241,7 @@ plot(model_rust, N=7)
 We can validate the model by comparing simulated data from the model to the observed data (ie posterior predictive checks).
 
 ```{r}
-pp_check(model_rust, nsamples = 500)
+pp_check(model_rust, ndraws = 500)
 ```
 
 We can also check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
@@ -306,7 +306,7 @@ plot(model_myco, N=7)
 Visual check of model fit using data simulated from the posterior distribution
 
 ```{r}
-pp_check(model_myco, nsamples=500)
+pp_check(model_myco, ndraws=500)
 ```
 
 Check for overly influential data points using Pareto-smoothed importance sampling (PSIS).
